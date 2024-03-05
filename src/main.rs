@@ -13,7 +13,7 @@ async fn main() {
         set.abort_all();
     }
 
-    // Sleep for 10 seconds to allow the spawned tasks to complete
+    // As you can see the run1() task just keeps on printing without an intention of stopping 😲
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 }
 
