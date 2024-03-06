@@ -1,54 +1,42 @@
-use tokio::task::JoinSet;
+use tokio::task::{JoinHandle, JoinSet};
 
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
 
     let mut set = JoinSet::new();
+    // set.spawn already spawns a tokio::task under the hood!
     set.spawn(run1());
     set.spawn(run2());
 
+    // On first error we shut down all tasks
     while let Some(task_return) = set.join_next().await {
-        println!("ERROR - task panicked! {task_return:?}");
+        // Common task top-level logging
+        match task_return {
+            Ok(res) => {
+                println!("success: {:?}", res);
+            }
+            Err(res) => {
+                println!("join error: {:?}", res);
+            }
+        }
         set.abort_all();
     }
 
-    // As you can see the run1() task just keeps on printing without an intention of stopping 😲
+    // As you can see all tasks have been stopped! 😲
     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 }
 
 async fn run1() {
-    match tokio::spawn(async {
-        // log timestamp every 1 sec
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            println!("timestamp: {}", chrono::Utc::now());
-        }
-    })
-    .await
-    {
-        Ok(succsess) => {
-            println!("success: {:?}", succsess);
-        }
-        Err(err) => {
-            println!("error: {:?}", err);
-        }
+    // log timestamp every 1 sec
+    loop {
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        println!("timestamp: {}", chrono::Utc::now());
     }
 }
 async fn run2() {
-    match tokio::spawn(async {
-        // sleep for 3 sec then panic
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    // sleep for 3 sec then panic
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
-        panic!("OMG")
-    })
-    .await
-    {
-        Ok(succsess) => {
-            println!("success: {:?}", succsess);
-        }
-        Err(err) => {
-            println!("error: {:?}", err);
-        }
-    }
+    panic!("OMG")
 }
